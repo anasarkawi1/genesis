@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"name": "genesis",
+			"path": "."
+		},
+		{
+			"path": "../genesis-archive"
+		}
+	],
+	"settings": {}
+}
