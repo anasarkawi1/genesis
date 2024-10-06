@@ -58,5 +58,8 @@ params.exchange = 'binance'
 # Runtime
 if __name__ == "__main__":
     # out = wu.createWorker(userId='user1', workerParams=params)
-    out = wu.checkMaxProcNumber()
-    print(out)
+    # out = wu.checkMaxProcNumber()
+    # out = wu.deleteWorker('clientId-dc084425-de99-40f7-8fff-429196ac89fc')
+    # print(out)
+
+    initiateAPI()

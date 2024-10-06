@@ -35,7 +35,7 @@ class WorkersUtility:
         # Runtime params
         self.maxProcs = maxProcs
         self.defaultWorkerPort = defaultWorkerPort
-        self.procsList = []
+        self.procsList = {}
         self.currentScanCursor = 0
 
 
@@ -71,7 +71,7 @@ class WorkersUtility:
 
             # Start the worker
             proc.start()
-            self.procsList.append(proc)
+            self.procsList[procKey] = proc
 
             # Get worker process PID
             procPID = proc.pid
@@ -90,11 +90,13 @@ class WorkersUtility:
                 'msg': workerInfo
             }
 
-    def getWorker(self):
+    def getWorkers(self, userId):
         pass
 
-    def deleteWorker(self):
-        pass
+    def deleteWorker(self, workerId):
+        # Get the info about the worker
+        worker = self.redisClient.hgetall(workerId)
+        print(worker)
 
 
     # Utils
@@ -116,16 +118,6 @@ class WorkersUtility:
             # TODO: Race condition?
             self.redisClient.set(self.redisKeys['currentPort'], currentPort)
             return currentPort
-
-    def addToProcList(self):
-        pass
-
-    def checkMaxProcNumberOld(self):
-        procs = self.redisClient.hgetall(self.redisKeys['procsKeys'])
-        if (len(procs.keys())) >= self.maxProcs:
-            return True
-        else:
-            return False
         
     def checkMaxProcNumber(self):
         cursor = self.redisClient.scan(
