@@ -8,6 +8,16 @@ responses = {
         'description': 'Not Found'
     }
 }
+redisParams = {
+    'host': '192.168.1.5',
+    'port': 6379
+}
+
+workerUtils = WorkersUtility(
+    maxProcs=10,
+    redisParams=redisParams,
+    defaultWorkerPort=8071
+)
 
 
 # Declare API router

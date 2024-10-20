@@ -111,6 +111,7 @@ def createProcess(
         workerUserId
 ):
     return multiprocessing.Process(
+        # daemon=True, # TODO: Should probably be set...
         target=workerClass,
         args=(
             apiKey,

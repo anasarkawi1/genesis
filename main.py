@@ -11,7 +11,6 @@ from app import main
 # Utils
 from app.utilities import workersUtilities
 
-
 # Load .env
 load_dotenv()
 
@@ -60,6 +59,11 @@ if __name__ == "__main__":
     # out = wu.createWorker(userId='user1', workerParams=params)
     # out = wu.checkMaxProcNumber()
     # out = wu.deleteWorker('clientId-dc084425-de99-40f7-8fff-429196ac89fc')
-    # print(out)
+    
+    outOne = wu.createWorker(userId='user1', workerParams=params)
+    print(outOne)
 
-    initiateAPI()
+    out = wu.killAllClients()
+    print(out)
+
+    # initiateAPI()
