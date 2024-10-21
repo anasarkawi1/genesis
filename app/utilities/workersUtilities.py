@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import os
 from multiprocessing import Process
 import signal
+from threading import Lock
 
 
 #
@@ -46,9 +47,6 @@ class WorkersUtility:
         self.defaultWorkerPort = defaultWorkerPort
         self.procsList: dict[str, Process] = {}
         self.currentScanCursor = 0
-
-        # Reset all clients and reset the whole system to a default state
-        # TODO: Implement above...
 
 
     def createWorker(self, userId, workerParams: workerParamsType):
@@ -97,7 +95,10 @@ class WorkersUtility:
                 'interval': workerParams.interval,
                 'exchange': workerParams.exchange
             }
+            
             redisWriteResult = self.redisClient.hset(procKey, mapping=workerInfo)
+
+            print(f'Command executed... Result: {redisWriteResult}')
             return {
                 'result': True,
                 'msg': workerInfo
@@ -117,7 +118,7 @@ class WorkersUtility:
 
             # Kill the process
             # TODO: Well, this is equivalent to giving the finger to the process and the class instance. Maybe calling internal functions to terminate its operation is a better idea.
-            self.procsList[workerId].kill()
+            self.procsList[workerId].terminate()
 
             # Delete the key from the dict
             del self.procsList[workerId]
@@ -156,6 +157,7 @@ class WorkersUtility:
             return currentPort
         
     # TODO: Is this even correct? I don't think scan is the correct function. Switched to KEYS...
+    # TODO: Why even bother with all this... just check len(procList)!!
     def checkMaxProcNumber(self):
         cursor = self.redisClient.scan(
             cursor=self.currentScanCursor,
@@ -174,7 +176,7 @@ class WorkersUtility:
         else:
             return False
         
-    def killAllClients(self):
+    def killAllClientsAndRecords(self):
         """
         Kill all clients, whether they exist or not. Used for system-resets and initialisations.
 
@@ -184,40 +186,23 @@ class WorkersUtility:
 
         Returns
         ----------
-            Bool: True if successful, False otherwise.
+            Bool: True if successful.
         """
 
-        # Step 1: Get all the workers matching the key = 'mercuryGenesis-Client-ID-*'
-        # keys = self.redisClient.keys(
-        #     pattern=f'{procKeyPrefix}*')
-        # No need for all the above...
-
-        # Step 2: Itirate through the list, first trying to kill the process by using its PID in redis, then purging the records in redis.
-        # for i in keys:
-        #     print(f'Key: {i}')
-        #     currentRecord = self.redisClient.hgetall(i)
-        #     try:
-        #         currentPid = currentRecord['PID']
-        #         currentProc = self.procsList[i]
-        #         currentProc.terminate()
-        #         print(f'Killed process with PID: {currentPid}')
-        #     except Exception as e:
-        #         print(e)
-
-        # Itirate through the list
+        # Itirate through the list of processes and terminate them
         for key, proc in self.procsList.items():
             try:
                 proc.terminate()
             except Exception as e:
-                print(e)
+                raise e
 
-        # Itirate through the redis keys
+        # Itirate through the redis keys and delete all records, whether running or not
         keys = self.redisClient.keys(
             pattern=f'{procKeyPrefix}*')
         for key in keys:
             try:
                 self.redisClient.delete(key)
             except Exception as e:
-                print(e)
+                raise e
 
-        return keys
+        return True
