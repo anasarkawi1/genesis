@@ -1,4 +1,3 @@
-from redis import Redis
 import json
 from uuid import uuid4
 from .mercuryUtilities import createProcess
@@ -28,23 +27,13 @@ class WorkersUtility:
     def __init__(
             self,
             maxProcs,
-            redisParams,
             defaultWorkerPort
             ):
-
-        # Redis Client
-        self.redisClient = Redis(
-            host=redisParams['host'],
-            port=redisParams['port'],
-            decode_responses=True)
-        self.redisKeys = {
-            'procsKeys': 'procsList',
-            'currentPort': 'procsCurrentPort'
-        }
         
         # Runtime params
         self.maxProcs = maxProcs
         self.defaultWorkerPort = defaultWorkerPort
+        self.currentPort = self.defaultWorkerPort
         self.procsList: dict[str, Process] = {}
         self.currentScanCursor = 0
 
@@ -86,8 +75,7 @@ class WorkersUtility:
 
             # Get worker process PID
             procPID = proc.pid
-
-            # Write worker info into redis
+            
             workerInfo = {
                 'PID': procPID,
                 'port': procPort,
@@ -95,10 +83,7 @@ class WorkersUtility:
                 'interval': workerParams.interval,
                 'exchange': workerParams.exchange
             }
-            
-            redisWriteResult = self.redisClient.hset(procKey, mapping=workerInfo)
 
-            print(f'Command executed... Result: {redisWriteResult}')
             return {
                 'result': True,
                 'msg': workerInfo
@@ -123,8 +108,6 @@ class WorkersUtility:
             # Delete the key from the dict
             del self.procsList[workerId]
 
-            # Delete the entry from Redis
-            self.redisClient.delete(workerId)
         except Exception as e:
             raise e
         return {
@@ -135,74 +118,33 @@ class WorkersUtility:
 
 
     # Utils
-    # These functions are to be used internally, and don't follow the descriptive return format laid out above.
-    # TODO: Seperate these into their own module/package somehow.
-
     def getCreds(self, userId):
         # Hardcoded for now...
         apiKey = os.getenv("API_KEY")
         apiSecret = os.getenv("API_SECRET")
-
         return [apiKey, apiSecret]
 
     def getCurrentPort(self):
-        currentPort = self.redisClient.get(self.redisKeys['currentPort'])
-        if currentPort == None:
-            return self.defaultWorkerPort
-        else:
-            currentPort = int(currentPort) + 1
-            # Set the current port to the new one
-            # TODO: Race condition?
-            self.redisClient.set(self.redisKeys['currentPort'], currentPort)
-            return currentPort
+        returnPort = self.currentPort
+        self.currentPort += 1
+        return returnPort
         
-    # TODO: Is this even correct? I don't think scan is the correct function. Switched to KEYS...
-    # TODO: Why even bother with all this... just check len(procList)!!
     def checkMaxProcNumber(self):
-        cursor = self.redisClient.scan(
-            cursor=self.currentScanCursor,
-            match=f'{procKeyPrefix}*')
-        self.currentScanCursor = cursor[0]  # The updated cursor
-
-        return True if ((len(cursor[1]) >= self.maxProcs)) else False
+        currentProcNumber = len(self.procsList)
+        return True if (currentProcNumber >= self.maxProcs) else False
     
     def checkProcessExist(self, workerId):
-        if (workerId in self.procsList):
-            if self.procsList[workerId].is_alive():
-                return True
-            # I don't even understand why I thought a 'is_alive' check is needed here...
-            # else:
-                # raise Exception('The worker is present, but not running.')
-        else:
-            return False
-        
+        return True if (workerId in self.procsList) else False
+    
+    # Kills and purges all processes, whether they exist or not. Used for system system resets.
     def killAllClientsAndRecords(self):
-        """
-        Kill all clients, whether they exist or not. Used for system-resets and initialisations.
-
-        Parameters
-        ----------
-            N/A
-
-        Returns
-        ----------
-            Bool: True if successful.
-        """
-
         # Itirate through the list of processes and terminate them
         for key, proc in self.procsList.items():
             try:
                 proc.terminate()
             except Exception as e:
                 raise e
-
-        # Itirate through the redis keys and delete all records, whether running or not
-        keys = self.redisClient.keys(
-            pattern=f'{procKeyPrefix}*')
-        for key in keys:
-            try:
-                self.redisClient.delete(key)
-            except Exception as e:
-                raise e
-
+        
+        self.procsList.clear()
+        
         return True
