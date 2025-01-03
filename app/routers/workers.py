@@ -4,10 +4,6 @@ from pydantic import BaseModel
 # from dependencies.workers import createWorker
 from ..utilities.workersUtilities import WorkersUtility, workerParamsType
 
-# class WorkersUtility:
-#     def __init__(self, **args) -> None:
-#         pass
-
 # Configuration
 class params:
     mode: str
@@ -22,15 +18,11 @@ responses = {
         'description': 'Not Found'
     }
 }
-redisParams = {
-    'host': '192.168.1.5',
-    'port': 6379
-}
 
 workerUtils = WorkersUtility(
     maxProcs=10,
-    redisParams=redisParams,
-    defaultWorkerPort=8071
+    defaultWorkerPort=8071,
+    supervisorPort=8070
 )
 
 
@@ -72,11 +64,11 @@ class createEndpointParams(BaseModel):
 
 @router.post('/create')
 async def createWorkerEndpoint(params: createEndpointParams):
-    print(params.workerParams)
+    # print(params.workerParams)
     result = workerUtils.createWorker(
         userId=params.userId,
         workerParams=params.workerParams)
-    print(result)
+    # print(result)
     return Response(status_code=200)
 
 

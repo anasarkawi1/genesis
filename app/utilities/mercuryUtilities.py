@@ -3,6 +3,8 @@ from mercuryFramework.trader import Trader
 from fastapi import FastAPI
 import multiprocessing
 
+
+
 class workerClass:
     # Maybe, we can expose this to the class so it can be more readily available to the endpoints.
     def workerCallback(self, trader, lastPrice, lastIndicator):
@@ -20,7 +22,8 @@ class workerClass:
             workerId,
             workerPort,
             workerName,
-            workerUserId
+            workerUserId,
+            supervisorPort
             ):
         
         # Mercury params
@@ -38,6 +41,9 @@ class workerClass:
         # self.workerName     = workerName
         self.workerUserId   = workerUserId
 
+        # Supervisor params
+        self.supervisorPort = supervisorPort
+
 
         # Instance attributes
 
@@ -50,6 +56,11 @@ class workerClass:
             credentials     = [apiKey, apiSecret],
             updateCallback  = self.callback)
         
+        # Update routines
+        # TODO: Implement
+        def orderUpdateHandler(self):
+            sPort = self.supervisorPort
+
         # ...we've never initialised it :,) let's see what'll happen...
         # There seems to be a problem realted to the callback... wait? could it be our callback?? (i.e. self.callback)
         # The issue seems to be stemming from the websocket update callback, specifically the line where the new calculations are appended onto the indicator df.
@@ -69,7 +80,7 @@ class workerClass:
                 'msg': 'The woker is working!'
             }
         
-        # TODO: BEFORE MOVING FORWARD TEST THIS!!! Update: works.
+
         @self.workerAPI.get('/basicInfo')
         async def getBasicInfo():
             return {
@@ -84,9 +95,7 @@ class workerClass:
                 "price": self.lastPrice,
                 "indicators": self.lastIndicator
             }
-
-        # TODO: Make a fucntion in mercury to give u the 
-
+    
 
         # Server
         # TODO: MY GOD WHY AM I STUPID?? Multiprocessing library has listeners/clients for inter-process communications... also, a whole ass RESTful API is a bit overkill innit?...
@@ -108,7 +117,8 @@ def createProcess(
         workerId,
         workerPort,
         workerName,
-        workerUserId
+        workerUserId,
+        supervisorPort
 ):
     return multiprocessing.Process(
         # daemon=True, # TODO: Should probably be set...
@@ -123,6 +133,7 @@ def createProcess(
             workerId,
             workerPort,
             workerName,
-            workerUserId
+            workerUserId,
+            supervisorPort
         )
     )

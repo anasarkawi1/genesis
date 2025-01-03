@@ -27,7 +27,8 @@ class WorkersUtility:
     def __init__(
             self,
             maxProcs,
-            defaultWorkerPort
+            defaultWorkerPort,
+            supervisorPort
             ):
         
         # Runtime params
@@ -36,6 +37,8 @@ class WorkersUtility:
         self.currentPort = self.defaultWorkerPort
         self.procsList: dict[str, Process] = {}
         self.currentScanCursor = 0
+        # Used for updating
+        self.supervisorPort = supervisorPort
 
 
     def createWorker(self, userId, workerParams: workerParamsType):
@@ -66,7 +69,8 @@ class WorkersUtility:
                 workerId        = procKey,
                 workerPort      = procPort,
                 workerName      = '',
-                workerUserId    = userId
+                workerUserId    = userId,
+                supervisorPort  = self.supervisorPort
             )
 
             # Start the worker
@@ -75,7 +79,7 @@ class WorkersUtility:
 
             # Get worker process PID
             procPID = proc.pid
-            
+
             workerInfo = {
                 'PID': procPID,
                 'port': procPort,
