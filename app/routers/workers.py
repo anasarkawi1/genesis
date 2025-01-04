@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, Depends, Response, Request
 from pydantic import BaseModel
 
@@ -44,6 +45,12 @@ async def getWorkersEndpoint():
 async def getWorkerInfoEndpoint():
     pass
 
+@router.get('/get-all-workers')
+async def getAllWorkersEndpoint():
+    workers = workerUtils.getAllWorkers()
+    responseBody = json.dumps(workers)
+    return Response(content=responseBody    , status_code=200)
+
 @router.delete('/reset-state')
 async def resetState(request: Request):
     # workerUtils.killAllClientsAndRecords()
@@ -60,6 +67,7 @@ async def resetState(request: Request):
 
 class createEndpointParams(BaseModel):
     userId: str
+    clientId: str
     workerParams: workerParamsType
 
 @router.post('/create')
@@ -67,6 +75,7 @@ async def createWorkerEndpoint(params: createEndpointParams):
     # print(params.workerParams)
     result = workerUtils.createWorker(
         userId=params.userId,
+        clientId=params.clientId,
         workerParams=params.workerParams)
     # print(result)
     return Response(status_code=200)
@@ -77,9 +86,11 @@ class deleteEndpointParams(BaseModel):
 
 @router.delete('/delete')
 async def deleteWorkerEndpoint(params: deleteEndpointParams):
-    print(params.workerId)
     result = workerUtils.deleteWorker(
         workerId=params.workerId
     )
-    print(result)
-    return Response(status_code=200)
+
+    if result['msg'] == 'NX_PROC':
+        return Response(content=f'{params.workerId}', status_code=304)
+    elif result['result'] == True:
+        return Response(status_code=200)

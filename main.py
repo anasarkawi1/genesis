@@ -26,7 +26,8 @@ def initiateAPI():
             host='0.0.0.0',
             port=8070,
             reload=True,
-            lifespan='on')
+            lifespan='on',
+            log_level='trace')
         print('[INFO] Server Started!')
     except KeyboardInterrupt:
         try:

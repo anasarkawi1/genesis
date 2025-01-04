@@ -35,13 +35,13 @@ class WorkersUtility:
         self.maxProcs = maxProcs
         self.defaultWorkerPort = defaultWorkerPort
         self.currentPort = self.defaultWorkerPort
-        self.procsList: dict[str, Process] = {}
+        self.procsList: dict[str, list(Process, dict[str, any])] = {}
         self.currentScanCursor = 0
         # Used for updating
         self.supervisorPort = supervisorPort
 
 
-    def createWorker(self, userId, workerParams: workerParamsType):
+    def createWorker(self, userId, clientId, workerParams: workerParamsType):
         if self.checkMaxProcNumber():
             return {
                 'result': False,
@@ -52,7 +52,7 @@ class WorkersUtility:
 
             # Determine worker params
             global procKeyPrefix
-            procKey = f'{procKeyPrefix}{str(uuid4())}'
+            procKey = f'{clientId}'
             procPort = self.getCurrentPort()
 
             # Get API credentials
@@ -75,8 +75,6 @@ class WorkersUtility:
 
             # Start the worker
             proc.start()
-            self.procsList[procKey] = proc
-
             # Get worker process PID
             procPID = proc.pid
 
@@ -88,6 +86,12 @@ class WorkersUtility:
                 'exchange': workerParams.exchange
             }
 
+            
+            self.procsList[procKey] = [
+                proc,
+                workerInfo
+            ]
+
             return {
                 'result': True,
                 'msg': workerInfo
@@ -96,10 +100,17 @@ class WorkersUtility:
     def getWorkers(self, userId):
         pass
 
+    def getAllWorkers(self):
+        output = {}
+        for key, proc in self.procsList.items():
+            output[key] = proc[1]
+        return output
+
     def deleteWorker(self, workerId):
         try:
             # Check if the process exists at all
-            if not self.checkProcessExist(workerId=workerId):
+            procExists = self.checkProcessExist(workerId=workerId)
+            if not procExists:
                 return {
                     'result': False,
                     'msg': 'NX_PROC'
@@ -107,13 +118,14 @@ class WorkersUtility:
 
             # Kill the process
             # TODO: Well, this is equivalent to giving the finger to the process and the class instance. Maybe calling internal functions to terminate its operation is a better idea.
-            self.procsList[workerId].terminate()
+            self.procsList[workerId][0].terminate()
 
             # Delete the key from the dict
             del self.procsList[workerId]
 
         except Exception as e:
             raise e
+        
         return {
             'result': True,
             'msg': 'WORKER_DELETED_SUCCESS'
@@ -145,7 +157,7 @@ class WorkersUtility:
         # Itirate through the list of processes and terminate them
         for key, proc in self.procsList.items():
             try:
-                proc.terminate()
+                proc[0].terminate()
             except Exception as e:
                 raise e
         
