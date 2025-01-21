@@ -6,6 +6,7 @@ import os
 from multiprocessing import Process
 import signal
 from threading import Lock
+import typing_extensions as typing
 
 
 #
@@ -14,6 +15,17 @@ from threading import Lock
 procKeyPrefixProd = f'mercuryGenesis-clientId-'
 procKeyPrefix = f'client-'
 
+workerUtilsErrStrings = typing.Literal["MAX_SYSTEM_PROCS_REACHED"]
+
+class WorkerUtilsException(Exception):
+    errCode                 : int
+    responseMsg             : workerUtilsErrStrings
+    responseStatusCode      : int
+
+class MaxProcsException(WorkerUtilsException):
+    errCode                 = 1001
+    responseMsg             = "MAX_SYSTEM_PROCS_REACHED"
+    responseStatusCode      = 500
 
 class workerParamsType(BaseModel):
     mode: str
@@ -21,6 +33,17 @@ class workerParamsType(BaseModel):
     interval: str
     exchange: str
 
+
+class WorkerInfoDict(typing.TypedDict):
+        PID             : str
+        port            : str
+        tradingPair     : str
+        interval        : str
+        exchange        : str
+class createWorkerReturn(typing.TypedDict):
+    result: bool
+    msg: WorkerInfoDict | None
+    err: workerUtilsErrStrings | None
 
 class WorkersUtility:
 
@@ -40,13 +63,13 @@ class WorkersUtility:
         # Used for updating
         self.supervisorPort = supervisorPort
 
-
-    def createWorker(self, userId, clientId, workerParams: workerParamsType):
+    def createWorker(
+            self,
+            userId,
+            clientId,
+            workerParams: workerParamsType) -> createWorkerReturn:
         if self.checkMaxProcNumber():
-            return {
-                'result': False,
-                'msg': 'MAX_PROC_REACHED'
-            }
+            raise MaxProcsException
         else:
             # There's enough space for a new instance. Proceed with thread instancing
 
@@ -78,12 +101,19 @@ class WorkersUtility:
             # Get worker process PID
             procPID = proc.pid
 
-            workerInfo = {
-                'PID': procPID,
-                'port': procPort,
-                'tradingPair': workerParams.tradingPair,
-                'interval': workerParams.interval,
-                'exchange': workerParams.exchange
+            # workerInfo = {
+                # 'PID': procPID,
+                # 'port': procPort,
+                # 'tradingPair': workerParams.tradingPair,
+                # 'interval': workerParams.interval,
+                # 'exchange': workerParams.exchange
+            # }
+            workerInfo: WorkerInfoDict = {
+                'PID':              procPID,
+                'port':             procPort,
+                'tradingPair':      workerParams.tradingPair,
+                'interval':         workerParams.interval,
+                'exchange':         workerParams.exchange
             }
 
             
