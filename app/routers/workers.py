@@ -120,8 +120,8 @@ def createInstanceRoutine(
     except WorkerUtilsException as err:
         raise err
 
-@router.post(
-        '/create',
+@router.put(
+        '/',
         response_model=CreateEndpointResponse,
         responses=alternateResponse['createEndpoint'])
 async def createInstanceEndpoint(params: CreateEndpointParams):
@@ -195,8 +195,10 @@ async def getClientInfoEndpoint(body: ClientInfoRequestBodyModel):
             status_code=err.responseStatusCode,
             content=returnContent)
 
-# @router.delete('/delete')
-# 
+@router.delete('/')
+async def deleteClientEndpoint():
+    pass
+
 # @router.post('/set-algorithm')
 # 
 # @router.post('/unset-algorithm')
