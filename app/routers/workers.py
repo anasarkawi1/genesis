@@ -195,9 +195,32 @@ async def getClientInfoEndpoint(body: ClientInfoRequestBodyModel):
             status_code=err.responseStatusCode,
             content=returnContent)
 
+
+#
+# Delete client endpoint
+#
+
+class DeleteClientRequestBody(BaseModel):
+    client_id: str
+
 @router.delete('/')
-async def deleteClientEndpoint():
-    pass
+async def deleteClientEndpoint(params: DeleteClientRequestBody):
+    try:
+        result = workerUtils.deleteWorker(workerId=params.client_id)
+        returnContent = {
+            "msg": result["msg"]
+        }
+        return JSONResponse(
+            status_code=200,
+            content=returnContent
+        )
+    except WorkerUtilsException as err:
+        returnContent = {
+            "msg": err.responseMsg
+        }
+        return JSONResponse(
+            status_code=err.responseStatusCode,
+            content=returnContent)
 
 # @router.post('/set-algorithm')
 # 

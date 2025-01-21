@@ -161,10 +161,11 @@ class WorkersUtility:
             # Check if the process exists at all
             procExists = self.checkProcessExist(workerId=workerId)
             if not procExists:
-                return {
-                    'result': False,
-                    'msg': 'NX_PROC'
-                }
+                raise ClientNotFoundException
+                # return {
+                #     'result': False,
+                #     'msg': 'NX_PROC'
+                # }
 
             # Kill the process
             # TODO: Well, this is equivalent to giving the finger to the process and the class instance. Maybe calling internal functions to terminate its operation is a better idea.
