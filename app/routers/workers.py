@@ -26,27 +26,14 @@ responses = {
 workerUtils = WorkersUtility(
     maxProcs=1,
     defaultWorkerPort=8071,
-    supervisorPort=8070
-)
+    supervisorPort=8070)
 
 
 # Declare API router
 router = APIRouter(
-    prefix='/workers',
-    tags=['workers'],
-    responses=responses
-)
-
-
-@router.get('/')
-async def getWorkersEndpoint():
-    return {
-        "msg": "workers_test"
-    }
-
-@router.get('/_info')
-async def getWorkerInfoEndpoint():
-    pass
+    prefix='/clients',
+    tags=['clients'],
+    responses=responses)
 
 
 # ADMINISTRATION ROUTE
@@ -67,24 +54,6 @@ async def resetState(request: Request):
     else:
         return Response(status_code=403)
 
-# TODO: Define a Dataparams thing for the req body fields
-#       use that for creating processes.
-
-
-class createEndpointParams(BaseModel):
-    userId: str
-    clientId: str
-    workerParams: workerParamsType
-
-@router.post('/_create')
-async def createWorkerEndpoint(params: createEndpointParams):
-    # print(params.workerParams)
-    # result = workerUtils.createWorker(
-        # userId=params.userId,
-        # clientId=params.clientId,
-        # workerParams=params.workerParams)
-    # print(result)
-    return Response(status_code=200)
 
 
 class deleteEndpointParams(BaseModel):
@@ -103,14 +72,39 @@ async def deleteWorkerEndpoint(params: deleteEndpointParams):
 
 
 
-# createEndpointErrorsLiteral = typing.Literal["INSTANCING_FAILED"]
-# createInstanceErrString: dict[workerUtilsErrStrings, createEndpointErrorsLiteral] = {
-#    "MAX_PROC_REACHED": "INSTANCING_FAILED"
-# }
+#
+# Error and alternate responses definitions
+#
+
+# Error response model
+class ErrorResponseModel(BaseModel):
+    msg: workerUtilsErrStrings
+
+class ClientNotFoundResponseModel(ErrorResponseModel):
+    msg: workerUtilsErrStrings = "CLIENT_NOT_FOUND"
+
+# Altername responses
+alternateResponse = {
+    "createEndpoint": {
+        500: { "model": ErrorResponseModel }
+    },
+    "getClientInfoEndpoint": {
+        500: { "model": ErrorResponseModel },
+        400: { "model": ClientNotFoundResponseModel },
+    }
+}
+
 
 #
-# Endpoint routines
+# Create Client Endpoint
 #
+
+class CreateEndpointParams(BaseModel):
+    userId: str
+    clientId: str
+    workerParams: workerParamsType
+class CreateEndpointResponse(BaseModel):
+    attr: WorkerInfoDict
 
 def createInstanceRoutine(
         userId: str,
@@ -125,25 +119,6 @@ def createInstanceRoutine(
         return result["msg"]
     except WorkerUtilsException as err:
         raise err
-
-
-# Error response model
-class ErrorResponseModel(BaseModel):
-    msg: workerUtilsErrStrings
-
-# Altername responses
-alternateResponse = {
-    "createEndpoint": {
-        500: { "model": ErrorResponseModel }
-    }
-}
-
-class CreateEndpointParams(BaseModel):
-    userId: str
-    clientId: str
-    workerParams: workerParamsType
-class CreateEndpointResponse(BaseModel):
-    attr: WorkerInfoDict
 
 @router.post(
         '/create',
@@ -169,8 +144,57 @@ async def createInstanceEndpoint(params: CreateEndpointParams):
             status_code=err.responseStatusCode,
             content=returnContent)
 
-# @router.get('/get-worker')
-# 
+
+#
+# Get Client Info Endpoint
+#
+
+class ClientInfoRequestBodyModel(BaseModel):
+    client_id: str
+
+class ClientInfoResponseModel(BaseModel):
+    proc_pid        : str
+    proc_port       : int
+    tradingPair     : str
+    interval        : str
+    exchange        : str
+
+def getClientInfo(
+    clientId: str
+) -> ClientInfoResponseModel:
+    try:
+        result = workerUtils.getClientInfo(clientId)
+        output = {
+            "proc_pid"              : result["PID"],
+            "proc_port"             : result["port"],
+            "tradingPair"           : result["tradingPair"],
+            "interval"              : result["interval"],
+            "exchange"              : result["exchange"],
+        }
+        return output
+    except WorkerUtilsException as err:
+        raise err
+
+@router.get(
+        '/',
+        response_model=ClientInfoResponseModel,
+        responses=alternateResponse['getClientInfoEndpoint'])
+async def getClientInfoEndpoint(body: ClientInfoRequestBodyModel):
+    try:
+        # Success, return instance attributes
+        result = getClientInfo(body.client_id)
+        returnContent = { "attr": result }
+        return JSONResponse(
+            status_code=200,
+            content=returnContent)
+    except WorkerUtilsException as err:
+        returnContent = {
+            "msg": err.responseMsg
+        }
+        return JSONResponse(
+            status_code=err.responseStatusCode,
+            content=returnContent)
+
 # @router.delete('/delete')
 # 
 # @router.post('/set-algorithm')

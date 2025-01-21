@@ -15,23 +15,37 @@ import typing_extensions as typing
 procKeyPrefixProd = f'mercuryGenesis-clientId-'
 procKeyPrefix = f'client-'
 
-workerUtilsErrStrings = typing.Literal["MAX_SYSTEM_PROCS_REACHED"]
-
-class WorkerUtilsException(Exception):
-    errCode                 : int
-    responseMsg             : workerUtilsErrStrings
-    responseStatusCode      : int
-
-class MaxProcsException(WorkerUtilsException):
-    errCode                 = 1001
-    responseMsg             = "MAX_SYSTEM_PROCS_REACHED"
-    responseStatusCode      = 500
-
 class workerParamsType(BaseModel):
     mode: str
     tradingPair: str
     interval: str
     exchange: str
+
+#
+# Error definitions
+#
+
+# Possible error response values
+workerUtilsErrStrings = typing.Literal[
+    "MAX_SYSTEM_PROCS_REACHED",
+    "CLIENT_NOT_FOUND"]
+# Base error class
+class WorkerUtilsException(Exception):
+    errCode                 : int
+    responseMsg             : workerUtilsErrStrings
+    responseStatusCode      : int
+
+# Available system processes limit reached
+class MaxProcsException(WorkerUtilsException):
+    errCode                 = 1001
+    responseMsg             = "MAX_SYSTEM_PROCS_REACHED"
+    responseStatusCode      = 500
+
+# Client not found exception
+class ClientNotFoundException(WorkerUtilsException):
+    errCode                 = 1002
+    responseMsg             = "CLIENT_NOT_FOUND"
+    responseStatusCode      = 400
 
 
 class WorkerInfoDict(typing.TypedDict):
@@ -127,8 +141,14 @@ class WorkersUtility:
                 'msg': workerInfo
             }
 
-    def getWorkers(self, userId):
-        pass
+    # def getWorkers(self, userId):
+    #     pass
+    def getClientInfo(self, clientId):
+        try:
+            client = self.procsList[clientId]
+            return client[1]
+        except KeyError:
+            raise ClientNotFoundException
 
     def getAllWorkers(self):
         output = {}
