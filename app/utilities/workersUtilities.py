@@ -7,6 +7,7 @@ from multiprocessing import Process
 import signal
 from threading import Lock
 import typing_extensions as typing
+import requests
 
 
 #
@@ -54,6 +55,7 @@ class WorkerInfoDict(typing.TypedDict):
         tradingPair     : str
         interval        : str
         exchange        : str
+        algorithmId     : str | None
 class createWorkerReturn(typing.TypedDict):
     result: bool
     msg: WorkerInfoDict | None
@@ -65,7 +67,8 @@ class WorkersUtility:
             self,
             maxProcs,
             defaultWorkerPort,
-            supervisorPort
+            supervisorPort,
+            logger
             ):
         
         # Runtime params
@@ -76,6 +79,7 @@ class WorkersUtility:
         self.currentScanCursor = 0
         # Used for updating
         self.supervisorPort = supervisorPort
+        self.logger = logger
 
     def createWorker(
             self,
@@ -107,7 +111,8 @@ class WorkersUtility:
                 workerPort      = procPort,
                 workerName      = '',
                 workerUserId    = userId,
-                supervisorPort  = self.supervisorPort
+                supervisorPort  = self.supervisorPort,
+                logger          = self.logger
             )
 
             # Start the worker
@@ -123,11 +128,12 @@ class WorkersUtility:
                 # 'exchange': workerParams.exchange
             # }
             workerInfo: WorkerInfoDict = {
-                'PID':              procPID,
-                'port':             procPort,
-                'tradingPair':      workerParams.tradingPair,
-                'interval':         workerParams.interval,
-                'exchange':         workerParams.exchange
+                'PID'           : procPID,
+                'port'          : procPort,
+                'tradingPair'   : workerParams.tradingPair,
+                'interval'      : workerParams.interval,
+                'exchange'      : workerParams.exchange,
+                'algorithmId'   : None
             }
 
             
@@ -181,7 +187,23 @@ class WorkersUtility:
             'result': True,
             'msg': 'WORKER_DELETED_SUCCESS'
         }
-
+    
+    def setClientAlgorithm(self, clientId, algorithmId, algorithm):
+        try:
+            client = self.procsList[clientId][1]
+            clientPort = client['port']
+            clientURL = f'http://localhost:{clientPort}/setAlgorithm'
+            req = requests.post(
+                clientURL,
+                json={
+                    "algorithm_id": algorithmId,
+                    "algorithm": algorithm
+                })
+            if req.status_code == 200:
+                self.procsList[clientId][1]['algorithmId'] = algorithmId
+            return req
+        except KeyError:
+            raise ClientNotFoundException
 
 
     # Utils

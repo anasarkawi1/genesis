@@ -1,15 +1,22 @@
 import uvicorn
 from mercuryFramework.trader import Trader
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
+from fastapi.responses import JSONResponse
 import multiprocessing
+from pydantic import BaseModel
+# import logging
 
 
+# logger = logging.getLogger('uvicorn.error')
 
 class workerClass:
     # Maybe, we can expose this to the class so it can be more readily available to the endpoints.
     def workerCallback(self, trader, lastPrice, lastIndicator):
+        # Handle algorithms here
         self.lastPrice = lastPrice
         self.lastIndicator = lastIndicator
+        if self.algorithm is not None:
+            self.logger.info('ALGORITHM SET! WE\'RE ON THE LOOK OUT!!')
 
     def __init__(
             self,
@@ -23,7 +30,8 @@ class workerClass:
             workerPort,
             workerName,
             workerUserId,
-            supervisorPort
+            supervisorPort,
+            logger
             ):
         
         # Mercury params
@@ -41,8 +49,15 @@ class workerClass:
         # self.workerName     = workerName
         self.workerUserId   = workerUserId
 
+        # Trading params
+        self.algorithmId    = None
+        self.algorithm      = None
+
         # Supervisor params
         self.supervisorPort = supervisorPort
+
+        # Logger
+        self.logger = logger
 
 
         # Instance attributes
@@ -95,6 +110,17 @@ class workerClass:
                 "price": self.lastPrice,
                 "indicators": self.lastIndicator
             }
+        
+        class SetAlgoReqBody(BaseModel):
+            algorithm_id    : str
+            algorithm        : dict
+
+        @self.workerAPI.post('/setAlgorithm')
+        async def setCurrentAlgorithm(params: SetAlgoReqBody):
+            self.algorithmId    = params.algorithm_id
+            self.algorithm      = params.algorithm       # Algorithm to be referenced. Also enables order placing.
+            logger.info('JKFHDSKJFDSKLFJDLK')
+            return JSONResponse(status_code=200, content={})
     
 
         # Server
@@ -118,7 +144,8 @@ def createProcess(
         workerPort,
         workerName,
         workerUserId,
-        supervisorPort
+        supervisorPort,
+        logger
 ):
     return multiprocessing.Process(
         # daemon=True, # TODO: Should probably be set...
@@ -134,6 +161,7 @@ def createProcess(
             workerPort,
             workerName,
             workerUserId,
-            supervisorPort
+            supervisorPort,
+            logger
         )
     )

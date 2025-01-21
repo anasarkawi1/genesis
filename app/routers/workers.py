@@ -26,7 +26,8 @@ responses = {
 workerUtils = WorkersUtility(
     maxProcs=1,
     defaultWorkerPort=8071,
-    supervisorPort=8070)
+    supervisorPort=8070,
+    logger=logger)
 
 
 # Declare API router
@@ -170,6 +171,7 @@ def getClientInfo(
             "tradingPair"           : result["tradingPair"],
             "interval"              : result["interval"],
             "exchange"              : result["exchange"],
+            "algorithmId"           : result["algorithmId"],
         }
         return output
     except WorkerUtilsException as err:
@@ -222,8 +224,34 @@ async def deleteClientEndpoint(params: DeleteClientRequestBody):
             status_code=err.responseStatusCode,
             content=returnContent)
 
-# @router.post('/set-algorithm')
-# 
+
+#
+# Set Algorithm Endpoint
+#
+
+class SetAlgorithmRequestBody(BaseModel):
+    client_id           : str
+    algorithm_id        : str
+    algorithm           : dict
+
+def setAlgorithm(clientId, algorithmId, algorithm):
+    try:
+        result = workerUtils.setClientAlgorithm(clientId, algorithmId, algorithm)
+        logger.info(result.json())
+    except WorkerUtilsException as err:
+        raise err
+
+@router.post('/set-algorithm')
+async def setAlgorithmEndpoint(params: SetAlgorithmRequestBody):
+    # logger.info(params.algorithm.keys())
+    res = setAlgorithm(
+        params.client_id,
+        params.algorithm_id,
+        params.algorithm,
+    )
+    return {}
+
+
 # @router.post('/unset-algorithm')
 # 
 # @router.post('/update-instance')
