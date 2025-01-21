@@ -17,6 +17,10 @@ from app.utilities import workersUtilities
 # Load .env
 load_dotenv()
 
+# Workaround for asyncio supression of KeyboardInterrupt on Windows.
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
 
 def initiateAPI():
     # Start servers
