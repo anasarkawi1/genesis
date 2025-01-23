@@ -75,7 +75,7 @@ class WorkersUtility:
         self.maxProcs = maxProcs
         self.defaultWorkerPort = defaultWorkerPort
         self.currentPort = self.defaultWorkerPort
-        self.procsList: dict[str, list(Process, dict[str, any])] = {}
+        self.procsList: dict[str, list[Process, dict[str, any]]] = {}
         self.currentScanCursor = 0
         # Used for updating
         self.supervisorPort = supervisorPort
