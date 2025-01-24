@@ -8,6 +8,7 @@ import signal
 from threading import Lock
 import typing_extensions as typing
 import requests
+from .localClientAPI import LocalClient
 
 
 #
@@ -29,7 +30,8 @@ class workerParamsType(BaseModel):
 # Possible error response values
 workerUtilsErrStrings = typing.Literal[
     "MAX_SYSTEM_PROCS_REACHED",
-    "CLIENT_NOT_FOUND"]
+    "CLIENT_NOT_FOUND",
+    "ALGORITHM_SET_FAILED"]
 # Base error class
 class WorkerUtilsException(Exception):
     errCode                 : int
@@ -48,6 +50,11 @@ class ClientNotFoundException(WorkerUtilsException):
     responseMsg             = "CLIENT_NOT_FOUND"
     responseStatusCode      = 400
 
+# Algorithm setting failed
+class AlgorithmSetFailedException(WorkerUtilsException):
+    errCode                 = 1002
+    responseMsg             = "ALGORITHM_SET_FAILED"
+    responseStatusCode      = 500
 
 class WorkerInfoDict(typing.TypedDict):
         PID             : str
@@ -80,6 +87,9 @@ class WorkersUtility:
         # Used for updating
         self.supervisorPort = supervisorPort
         self.logger = logger
+
+        # Client API
+        self.client = LocalClient()
 
     def createWorker(
             self,
@@ -190,20 +200,24 @@ class WorkersUtility:
     
     def setClientAlgorithm(self, clientId, algorithmId, algorithm):
         try:
-            client = self.procsList[clientId][1]
-            clientPort = client['port']
-            clientURL = f'http://localhost:{clientPort}/setAlgorithm'
-            req = requests.post(
-                clientURL,
-                json={
-                    "algorithm_id": algorithmId,
-                    "algorithm": algorithm
-                })
-            if req.status_code == 200:
+            clientPort = self.getClientPort(clientId=clientId)
+            reqBody = {
+                "algorithm_id"    : algorithmId,
+                "algorithm"       : algorithm
+            }
+            res = self.client.setAlgorithm(port=clientPort, data=reqBody)
+            # Check if the request was successful
+            if res.status_code == 200:
                 self.procsList[clientId][1]['algorithmId'] = algorithmId
-            return req
-        except KeyError:
-            raise ClientNotFoundException
+                return res.json()
+            # Algorithm set failed, raise error
+            else:
+                raise AlgorithmSetFailedException
+            # 
+            # res = self.client.getInfo(port=clientPort)
+            # return res.json()
+        except WorkerUtilsException as err:
+            raise err
 
 
     # Utils
@@ -221,6 +235,13 @@ class WorkersUtility:
     def checkMaxProcNumber(self):
         currentProcNumber = len(self.procsList)
         return True if (currentProcNumber >= self.maxProcs) else False
+    
+    def getClientPort(self, clientId):
+        try:
+            clientAttr = self.procsList[clientId]
+            return clientAttr[1]["port"]
+        except KeyError:
+            raise ClientNotFoundException
     
     def checkProcessExist(self, workerId):
         return True if (workerId in self.procsList) else False

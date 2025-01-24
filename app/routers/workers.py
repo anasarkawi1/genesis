@@ -84,7 +84,7 @@ class ErrorResponseModel(BaseModel):
 class ClientNotFoundResponseModel(ErrorResponseModel):
     msg: workerUtilsErrStrings = "CLIENT_NOT_FOUND"
 
-# Altername responses
+# TODO: Define common alternates
 alternateResponse = {
     "createEndpoint": {
         500: { "model": ErrorResponseModel }
@@ -92,6 +92,9 @@ alternateResponse = {
     "getClientInfoEndpoint": {
         500: { "model": ErrorResponseModel },
         400: { "model": ClientNotFoundResponseModel },
+    },
+    "setAlgorithmEndpoint": {
+        400: { "model": ClientNotFoundResponseModel }
     }
 }
 
@@ -237,19 +240,27 @@ class SetAlgorithmRequestBody(BaseModel):
 def setAlgorithm(clientId, algorithmId, algorithm):
     try:
         result = workerUtils.setClientAlgorithm(clientId, algorithmId, algorithm)
-        logger.info(result.json())
+        # logger.info(result)
+        return result
     except WorkerUtilsException as err:
         raise err
 
 @router.post('/set-algorithm')
 async def setAlgorithmEndpoint(params: SetAlgorithmRequestBody):
-    # logger.info(params.algorithm.keys())
-    res = setAlgorithm(
-        params.client_id,
-        params.algorithm_id,
-        params.algorithm,
-    )
-    return {}
+    try:
+        res = setAlgorithm(
+            params.client_id,
+            params.algorithm_id,
+            params.algorithm,
+        )
+        return res
+    except WorkerUtilsException as err:
+        returnContent = {
+            "msg": err.responseMsg
+        }
+        return JSONResponse(
+            status_code=err.responseStatusCode,
+            content=returnContent)
 
 
 # @router.post('/unset-algorithm')

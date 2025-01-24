@@ -113,14 +113,15 @@ class workerClass:
         
         class SetAlgoReqBody(BaseModel):
             algorithm_id    : str
-            algorithm        : dict
+            algorithm       : dict
 
         @self.workerAPI.post('/setAlgorithm')
         async def setCurrentAlgorithm(params: SetAlgoReqBody):
             self.algorithmId    = params.algorithm_id
             self.algorithm      = params.algorithm       # Algorithm to be referenced. Also enables order placing.
-            logger.info('JKFHDSKJFDSKLFJDLK')
-            return JSONResponse(status_code=200, content={})
+            self.logger.info(params)
+            self.logger.info("HELLOOOOOOOOOOOOO")
+            return JSONResponse(status_code=200, content=self.algorithm)
     
 
         # Server
