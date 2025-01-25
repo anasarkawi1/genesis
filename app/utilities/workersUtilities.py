@@ -9,6 +9,7 @@ from threading import Lock
 import typing_extensions as typing
 import requests
 from .localClientAPI import LocalClient
+from sys import stdout
 
 
 #
@@ -212,6 +213,9 @@ class WorkersUtility:
                 return res.json()
             # Algorithm set failed, raise error
             else:
+                print(f"Status code is non 200!! Code: {res.status_code}. Response Body:")
+                print(res.json())
+                stdout.flush()
                 raise AlgorithmSetFailedException
             # 
             # res = self.client.getInfo(port=clientPort)

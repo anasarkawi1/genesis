@@ -17,7 +17,7 @@ def requestGenerator(
         reqObj = Request(
             reqMethod,
             url=reqURL,
-            data=data,
+            json=data,
             headers=defaultHeaders)
         preppedReq = reqObj.prepare()
         

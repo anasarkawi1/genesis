@@ -17,7 +17,8 @@ class workerClass:
         self.lastPrice = lastPrice
         self.lastIndicator = lastIndicator
         if self.algorithm is not None:
-            self.logger.info('ALGORITHM SET! WE\'RE ON THE LOOK OUT!!')
+            print("Algorithm is set! Probably should be working right now...")
+            sys.stdout.flush()
 
     def __init__(
             self,
@@ -121,8 +122,8 @@ class workerClass:
         async def setCurrentAlgorithm(params: SetAlgoReqBody):
             self.algorithmId    = params.algorithm_id
             self.algorithm      = params.algorithm       # Algorithm to be referenced. Also enables order placing.
-            print(self.algorithm)
-            # print(params)
+            # print(self.algorithm)
+            print(params)
             # print("HELLOOOO???")
             sys.stdout.flush()
             return JSONResponse(status_code=200, content=self.algorithm)
