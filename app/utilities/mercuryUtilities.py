@@ -5,10 +5,19 @@ from fastapi.responses import JSONResponse
 import multiprocessing
 from pydantic import BaseModel
 import sys
+import typing_extensions as typing
+import numpy as np
 # import logging
 
 
 # logger = logging.getLogger('uvicorn.error')
+
+
+# Type hinting definitions
+class AlgorithmDict(typing.TypedDict):
+    entry   : dict
+    exit    : dict
+
 
 class workerClass:
     # Maybe, we can expose this to the class so it can be more readily available to the endpoints.
@@ -17,8 +26,63 @@ class workerClass:
         self.lastPrice = lastPrice
         self.lastIndicator = lastIndicator
         if self.algorithm is not None:
+            # An algorithm is set, start trading.
+            # Check if a trade has been entered into already
+            if self.positionEntered is False:
+                # Position hasn't been entered into, look if we should enter one
+                entryParams = self.algorithm['entry']
+                for key, val in entryParams.items():
+                    # Values inside val:
+                    # {
+                    #       'param_name'    : 'SMA20',
+                    #       'param_type'    : 'relative',
+                    #       'range'         : {'min': 0, 'max': 100},
+                    #       'threshold'     : 20,
+                    #       'direction'     : 'lessThan'
+                    # }
+
+                    # Check if the indicator exists at all
+                    if key in lastIndicator.index:
+                        # Indicator exists, proceed with comparison
+                        # Get the current value
+                        currentVal = lastIndicator.at[key]
+                        # Get the algo paramter attributes
+                        paramType        = val['param_type']
+                        paramDirection   = val['direction']
+                        thresholdVal     = val['threshold']
+
+                        # Check if the param type
+                        if paramType == "relative":
+                            # Indicator is relative, check values directly
+                            if (currentVal >= thresholdVal) and (paramDirection == "lessThan"):
+                                return False
+                            elif (currentVal <= thresholdVal) and (paramDirection == "greaterThan"):
+                                return False
+                        
+                        elif paramType == "percent_diff":
+                            # Indicator depends on the percent difference between the price and the indicator
+                            currentClose = lastPrice.at["close"]
+                            pDiff = self.percentDiff(currentVal, currentClose)
+                            print(f"Close: {currentClose}\nValue: {currentVal}\npDiff: {pDiff}")
+                            if (pDiff >= thresholdVal) and (paramDirection == "lessThan"):
+                                return False
+                            elif (pDiff <= thresholdVal) and (paramDirection == "greaterThan"):
+                                return False
+                
+                # Do something after the for loop finishes
+            elif self.positionEntered is True:
+                # A position has already been entered into, look if we should exit it.
+                pass
             print("Algorithm is set! Probably should be working right now...")
             sys.stdout.flush()
+    
+    def percentDiff(self, a, b):
+            numerator = np.abs((a - b))
+            denominator = (a + b)
+            denominator = denominator / 2
+            output = (numerator / denominator)
+            output = output * 100
+            return output
 
     def __init__(
             self,
@@ -37,27 +101,27 @@ class workerClass:
             ):
         
         # Mercury params
-        self.callback           = self.workerCallback
-        self.mode               = mode
-        self.tradingPair        = tradingPair
-        self.interval           = interval
-        self.exchange           = exchange
-        self.lastPrice          = []
-        self.lastIndicator      = []
+        self.callback                           = self.workerCallback
+        self.mode                               = mode
+        self.tradingPair                        = tradingPair
+        self.interval                           = interval
+        self.exchange                           = exchange
+        self.lastPrice                          = []
+        self.lastIndicator                      = []
 
         # Worker params
-        self.workerId           = workerId
-        self.workerPort         = workerPort
-        # self.workerName         = workerName
-        self.workerUserId       = workerUserId
+        self.workerId                           = workerId
+        self.workerPort                         = workerPort
+        # self.workerName                         = workerName
+        self.workerUserId                       = workerUserId
 
         # Trading params
-        self.algorithmId        = None
-        self.algorithm          = None
-        self.positionEntered    = False
+        self.algorithmId: str                   = None
+        self.algorithm: AlgorithmDict           = None
+        self.positionEntered: bool              = False
 
         # Supervisor params
-        self.supervisorPort     = supervisorPort
+        self.supervisorPort                     = supervisorPort
 
         # Logger
         self.logger = logger
@@ -73,7 +137,7 @@ class workerClass:
             exchange        = self.exchange,
             credentials     = [apiKey, apiSecret],
             updateCallback  = self.callback)
-        
+
         # Update routines
         # TODO: Implement
         def orderUpdateHandler(self):
