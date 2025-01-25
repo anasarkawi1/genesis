@@ -4,6 +4,7 @@ from fastapi import FastAPI, Response
 from fastapi.responses import JSONResponse
 import multiprocessing
 from pydantic import BaseModel
+import sys
 # import logging
 
 
@@ -35,26 +36,27 @@ class workerClass:
             ):
         
         # Mercury params
-        self.callback        = self.workerCallback
-        self.mode            = mode
-        self.tradingPair     = tradingPair
-        self.interval        = interval
-        self.exchange        = exchange
-        self.lastPrice       = []
-        self.lastIndicator   = []
+        self.callback           = self.workerCallback
+        self.mode               = mode
+        self.tradingPair        = tradingPair
+        self.interval           = interval
+        self.exchange           = exchange
+        self.lastPrice          = []
+        self.lastIndicator      = []
 
         # Worker params
-        self.workerId       = workerId
-        self.workerPort     = workerPort
-        # self.workerName     = workerName
-        self.workerUserId   = workerUserId
+        self.workerId           = workerId
+        self.workerPort         = workerPort
+        # self.workerName         = workerName
+        self.workerUserId       = workerUserId
 
         # Trading params
-        self.algorithmId    = None
-        self.algorithm      = None
+        self.algorithmId        = None
+        self.algorithm          = None
+        self.positionEntered    = False
 
         # Supervisor params
-        self.supervisorPort = supervisorPort
+        self.supervisorPort     = supervisorPort
 
         # Logger
         self.logger = logger
@@ -119,8 +121,10 @@ class workerClass:
         async def setCurrentAlgorithm(params: SetAlgoReqBody):
             self.algorithmId    = params.algorithm_id
             self.algorithm      = params.algorithm       # Algorithm to be referenced. Also enables order placing.
-            self.logger.info(params)
-            self.logger.info("HELLOOOOOOOOOOOOO")
+            print(self.algorithm)
+            # print(params)
+            # print("HELLOOOO???")
+            sys.stdout.flush()
             return JSONResponse(status_code=200, content=self.algorithm)
     
 

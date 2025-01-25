@@ -1,0 +1,4 @@
+Added endpoint and its routines for setting algorithms,
+Implemented a basic API client library,
+Added helper function for getting client port,
+Working on implementing client-side endpoint for algorithm setting.
