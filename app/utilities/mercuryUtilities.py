@@ -55,18 +55,26 @@ class workerClass:
                         if paramType == "relative":
                             # Indicator is relative, check values directly
                             if (currentVal >= thresholdVal) and (paramDirection == "lessThan"):
+                                print("Failed!")
                                 return False
                             elif (currentVal <= thresholdVal) and (paramDirection == "greaterThan"):
+                                print("Failed!")
                                 return False
                         
                         elif paramType == "percent_diff":
                             # Indicator depends on the percent difference between the price and the indicator
                             currentClose = lastPrice.at["close"]
                             pDiff = self.percentDiff(currentVal, currentClose)
-                            print(f"Close: {currentClose}\nValue: {currentVal}\npDiff: {pDiff}")
+                            # print("*******")
+                            # print(f"CURRENT: {key}")
+                            # print(f"Close: {currentClose}\nValue: {currentVal}\npDiff: {pDiff}\nThreshold: {thresholdVal}")
+                            
+                            # These if statements check the opposite condition to fail the check
                             if (pDiff >= thresholdVal) and (paramDirection == "lessThan"):
+                                # print("Failed!")
                                 return False
                             elif (pDiff <= thresholdVal) and (paramDirection == "greaterThan"):
+                                # print("Failed!")
                                 return False
                 
                 # Do something after the for loop finishes
