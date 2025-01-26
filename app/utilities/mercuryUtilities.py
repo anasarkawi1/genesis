@@ -20,6 +20,10 @@ class AlgorithmDict(typing.TypedDict):
 
 
 class workerClass:
+
+    def paramChecker(dict, callback):
+        pass
+
     # Maybe, we can expose this to the class so it can be more readily available to the endpoints.
     def workerCallback(self, trader, lastPrice, lastIndicator):
         # Handle algorithms here
@@ -27,6 +31,7 @@ class workerClass:
         self.lastIndicator = lastIndicator
         if self.algorithm is not None:
             # An algorithm is set, start trading.
+
             # Check if a trade has been entered into already
             if self.positionEntered is False:
                 # Position hasn't been entered into, look if we should enter one
@@ -50,38 +55,69 @@ class workerClass:
                         paramType        = val['param_type']
                         paramDirection   = val['direction']
                         thresholdVal     = val['threshold']
+                        # Comparison value
+                        compVal = 0
 
                         # Check if the param type
                         if paramType == "relative":
                             # Indicator is relative, check values directly
-                            if (currentVal >= thresholdVal) and (paramDirection == "lessThan"):
-                                print("Failed!")
-                                return False
-                            elif (currentVal <= thresholdVal) and (paramDirection == "greaterThan"):
-                                print("Failed!")
-                                return False
-                        
+                            compVal = currentVal
                         elif paramType == "percent_diff":
                             # Indicator depends on the percent difference between the price and the indicator
                             currentClose = lastPrice.at["close"]
                             pDiff = self.percentDiff(currentVal, currentClose)
-                            # print("*******")
-                            # print(f"CURRENT: {key}")
-                            # print(f"Close: {currentClose}\nValue: {currentVal}\npDiff: {pDiff}\nThreshold: {thresholdVal}")
+                            compVal = pDiff
+                        
+                        # Debug
+                        print("*******")
+                        print(f"CURRENT: {key}")
+                        print(f"Close: {currentClose}\nValue: {currentVal}\nCompVal: {compVal}\nThreshold: {thresholdVal}")
                             
-                            # These if statements check the opposite condition to fail the check
-                            if (pDiff >= thresholdVal) and (paramDirection == "lessThan"):
-                                # print("Failed!")
-                                return False
-                            elif (pDiff <= thresholdVal) and (paramDirection == "greaterThan"):
-                                # print("Failed!")
-                                return False
-                
+                        # These if statements check the opposite condition to fail the check
+                        if (compVal >= thresholdVal) and (paramDirection == "lessThan"):
+                            print("Failed!")
+                            return False
+                        elif (compVal <= thresholdVal) and (paramDirection == "greaterThan"):
+                            print("Failed!")
+                            return False
+                        
                 # Do something after the for loop finishes
+                self.positionEntered = True
+                print("Position entered!")
+            
+
+            # A position has already been entered into, look if we should exit it.
             elif self.positionEntered is True:
-                # A position has already been entered into, look if we should exit it.
-                pass
-            print("Algorithm is set! Probably should be working right now...")
+                exitParams = self.algorithm["exit"]
+
+                for key, val in exitParams.items():
+                    if key in lastIndicator.index:
+                        currentVal          = lastIndicator.at[key]
+                        paramType           = val['param_type']
+                        paramDirection      = val['direction']
+                        thresholdVal        = val['threshold']
+                        compVal = 0
+
+                        if paramType == "relative":
+                            compVal = currentVal
+                        elif paramType == "percent_diff":
+                            currentClose = lastPrice.at["close"]
+                            pDiff = self.percentDiff(currentVal, currentClose)
+                            compVal = pDiff
+                        
+                        # These if statements check the opposite condition to fail the check
+                        if (compVal >= thresholdVal) and (paramDirection == "lessThan"):
+                            print("Failed!")
+                            return False
+                        elif (compVal <= thresholdVal) and (paramDirection == "greaterThan"):
+                            print("Failed!")
+                            return False
+                        
+                # Do something after the for loop finishes
+                self.positionEntered = True
+                print("Position exited!")
+
+            # Flush standard output
             sys.stdout.flush()
     
     def percentDiff(self, a, b):
