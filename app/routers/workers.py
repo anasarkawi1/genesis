@@ -236,10 +236,11 @@ class SetAlgorithmRequestBody(BaseModel):
     client_id           : str
     algorithm_id        : str
     algorithm           : dict
+    entry_cost          : float
 
-def setAlgorithm(clientId, algorithmId, algorithm):
+def setAlgorithm(clientId, algorithmId, algorithm, entryCost):
     try:
-        result = workerUtils.setClientAlgorithm(clientId, algorithmId, algorithm)
+        result = workerUtils.setClientAlgorithm(clientId, algorithmId, algorithm, entryCost)
         # logger.info(result)
         return result
     except WorkerUtilsException as err:
@@ -252,6 +253,7 @@ async def setAlgorithmEndpoint(params: SetAlgorithmRequestBody):
             params.client_id,
             params.algorithm_id,
             params.algorithm,
+            params.entry_cost
         )
         return res
     except WorkerUtilsException as err:

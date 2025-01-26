@@ -203,6 +203,7 @@ class workerClass:
         class SetAlgoReqBody(BaseModel):
             algorithm_id    : str
             algorithm       : dict
+            entry_cost      : float
 
         @self.workerAPI.post('/setAlgorithm')
         async def setCurrentAlgorithm(params: SetAlgoReqBody):

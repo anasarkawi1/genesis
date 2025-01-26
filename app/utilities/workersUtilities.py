@@ -199,12 +199,13 @@ class WorkersUtility:
             'msg': 'WORKER_DELETED_SUCCESS'
         }
     
-    def setClientAlgorithm(self, clientId, algorithmId, algorithm):
+    def setClientAlgorithm(self, clientId, algorithmId, algorithm, entryCost):
         try:
             clientPort = self.getClientPort(clientId=clientId)
             reqBody = {
                 "algorithm_id"    : algorithmId,
-                "algorithm"       : algorithm
+                "algorithm"       : algorithm,
+                "entry_cost"      : entryCost
             }
             res = self.client.setAlgorithm(port=clientPort, data=reqBody)
             # Check if the request was successful
