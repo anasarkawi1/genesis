@@ -8,6 +8,7 @@ import sys
 import typing_extensions as typing
 import numpy as np
 import pandas as pd
+import hermesConnector.hermesExceptions as hermesExceptions
 # import logging
 
 
@@ -24,16 +25,19 @@ class workerClass:
 
     def positionEntryHandler(self, trader: Trader):
         # Here, we need to call the order functions
-        orderOut = trader.costBuy(self.entryCost)
-        # Check if the entire order is executed. If not, continue checking for the rest of the order until it is  completely filled.
-        if (orderOut["origQty"] != orderOut["executedQty"]):
-            pass
-        # print(orderOut)
-        execQty = orderOut['executedQty']
-        self.execQty = execQty
-        print(f"Executed Qty: {execQty}")
-        self.positionEntered = True
-        print("Position entered!")
+        try:
+            orderOut = trader.costBuy(self.entryCost)
+            # Check if the entire order is executed. If not, continue checking for the rest of the order until it is  completely filled.
+            if (orderOut["origQty"] != orderOut["executedQty"]):
+                pass
+            # print(orderOut)
+            execQty = orderOut['executedQty']
+            self.execQty = execQty
+            print(f"Executed Qty: {execQty}")
+            self.positionEntered = True
+            print("Position entered!")
+        except hermesExceptions.HermesBaseException as err:
+            raise err
 
     def positionExitHandler(self, trader: Trader):
         orderOut = trader.sell(self.execQty)
