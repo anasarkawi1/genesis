@@ -89,6 +89,8 @@ class workerClass:
             print(f"Executed Qty: {execQty}")
             self.positionEntered = True
             print("Position entered!")
+        
+        # The except cases here will be made for each case it seems like. There gotta be a better way of doing this...
         except hermesExceptions.HermesBaseException as err:
             raise err
 
