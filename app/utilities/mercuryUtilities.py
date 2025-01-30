@@ -15,6 +15,59 @@ import hermesConnector.hermesExceptions as hermesExceptions
 # logger = logging.getLogger('uvicorn.error')
 
 
+# Exception definitions
+# Here, each exception provided in HermesExceptions is inherited to a new Exception, which itself inherits a new base exception `WorkersException`.
+
+# Workers base exception
+class WorkersException():
+    responseStatusCode      : int
+    responseMessage         : str
+
+#
+# Exception extenstions
+#
+
+class UnknownGenericWorkersException(WorkersException, hermesExceptions.UnknownGenericHermesException):
+    responseStatusCode      = 500
+    responseMessage         = hermesExceptions.UnknownGenericHermesException.errStr
+
+class AuthFailedWorkersException(WorkersException, hermesExceptions.AuthFailed):
+    responseStatusCode      = 401
+    responseMessage         = hermesExceptions.AuthFailed.errStr
+
+class InsufficientParamsWorkersException(WorkersException, hermesExceptions.InsufficientParameters):
+    responseStatusCode      = 400
+    responseMessage         = hermesExceptions.InsufficientParameters.errStr
+
+class InternalConErrWorkersException(WorkersException, hermesExceptions.InternalConnectionError):
+    responseStatusCode      = 500
+    responseMessage         = hermesExceptions.InternalConnectionError.errStr
+
+class TooManyRequestWorkersException(WorkersException, hermesExceptions.TooManyRequests):
+    responseStatusCode      = 420
+    responseMessage         = hermesExceptions.TooManyRequests.errStr
+
+class RequestTimeoutWorkersException(WorkersException, hermesExceptions.RequestTimeout):
+    responseStatusCode      = 408
+    responseMessage         = hermesExceptions.RequestTimeout.errStr
+
+class GenericOrderWorkersException(WorkersException, hermesExceptions.GenericOrderError):
+    responseStatusCode      = 500
+    responseMessage         = hermesExceptions.GenericOrderError.errStr
+
+class OrderFailedToSendWorkersException(WorkersException, hermesExceptions.OrderFailedToSend):
+    responseStatusCode      = 502
+    responseMessage         = hermesExceptions.OrderFailedToSend.errStr
+
+class OrderRejectedWorkersException(WorkersException, hermesExceptions.OrderRejected):
+    responseStatusCode      = 400
+    responseMessage         = hermesExceptions.OrderRejected.errStr
+
+class InsufficientBalanceWorkersException(WorkersException, hermesExceptions.InsufficientBalance):
+    responseStatusCode      = 412
+    responseMessage         = hermesExceptions.InsufficientBalance.errStr
+
+
 # Type hinting definitions
 class AlgorithmDict(typing.TypedDict):
     entry   : dict
