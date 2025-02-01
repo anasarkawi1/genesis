@@ -74,6 +74,11 @@ class AlgorithmDict(typing.TypedDict):
     exit    : dict
 
 
+def exceptionConverter(baseException):
+    match baseException:
+        case _:
+            pass
+
 class workerClass:
 
     def positionEntryHandler(self, trader: Trader):
