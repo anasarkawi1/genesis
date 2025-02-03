@@ -62,3 +62,14 @@ class LocalClient:
             method='POST',
             baseURL=self.baseURL
         )
+
+        class UnsetAlgorithmProtocol(typing.Protocol):
+            def __call__(self, port: int):
+                ...
+        
+        self.unsetAlgorithm: UnsetAlgorithmProtocol = requestGenerator(
+            session=self.requestsSession,
+            endpointPath='/unsetAlgorithm',
+            method='DELETE',
+            baseURL=self.baseURL
+        )

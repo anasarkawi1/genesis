@@ -25,6 +25,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 def initiateAPI():
     # Start servers
     try:
+        print('[INFO] Server Started!')
         uvicorn.run(
             'main:app', # 'app:main',
             host='0.0.0.0',
@@ -32,7 +33,6 @@ def initiateAPI():
             reload=True,
             lifespan='on',
             log_level='trace')
-        print('[INFO] Server Started!')
     except KeyboardInterrupt:
         try:
             print('[INFO] KeyboardInterrupt detected! Joining processes and exiting...')

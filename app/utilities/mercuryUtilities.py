@@ -26,12 +26,12 @@ class AlgorithmDict(typing.TypedDict):
     exit    : dict
 
 
-def exceptionConverter(baseException):
-    match baseException:
-        case _:
-            pass
+
 
 class workerClass:
+
+    def hermesExceptionNotifier(recvException: hermesExceptions.HermesBaseException):
+        pass
 
     def positionEntryHandler(self, trader: Trader):
         # Here, we need to call the order functions
@@ -236,6 +236,14 @@ class workerClass:
 
         @self.workerAPI.post('/setAlgorithm')
         async def setCurrentAlgorithm(params: SetAlgoReqBody):
+            # Reset current state
+            self.algorithmId        = None
+            self.algorithm          = None
+            self.positionEntered    = False
+            self.entryCost          = 0
+            self.execQty            = 0
+
+            # Set new algo
             self.algorithmId    = params.algorithm_id
             self.algorithm      = params.algorithm       # Algorithm to be referenced. Also enables order placing.
             self.entryCost      = params.entry_cost
@@ -244,7 +252,15 @@ class workerClass:
             # print("HELLOOOO???")
             sys.stdout.flush()
             return JSONResponse(status_code=200, content=self.algorithm)
-    
+
+        @self.workerAPI.delete('/unsetAlgorithm')
+        async def unsetCurrentAlgorithm():
+            self.algorithmId        = None
+            self.algorithm          = None
+            self.positionEntered    = False
+            self.entryCost          = 0
+            self.execQty            = 0
+            return JSONResponse(status_code=200, content={})
 
         # Server
         # TODO: MY GOD WHY AM I STUPID?? Multiprocessing library has listeners/clients for inter-process communications... also, a whole ass RESTful API is a bit overkill innit?...
