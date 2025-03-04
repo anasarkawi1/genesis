@@ -37,6 +37,12 @@ router = APIRouter(
     responses=responses)
 
 
+# Reset state on reload
+@router.on_event("shutdown")
+def startupInitialiser():
+    workerUtils.killAllClientsAndRecords()
+
+
 # ADMINISTRATION ROUTE
 @router.get('/get-all-workers')
 async def getAllWorkersEndpoint():
@@ -263,6 +269,31 @@ async def setAlgorithmEndpoint(params: SetAlgorithmRequestBody):
             content=returnContent)
 
 
-# @router.post('/unset-algorithm')
-#
+class UnsetAlgorithmRequestBody(BaseModel):
+    client_id: str
+
+def unsetAlgorithm(clientId):
+    try:
+        res = workerUtils.unsetClientAlgorithm(clientId=clientId)
+        return res
+    except WorkerUtilsException as err:
+        raise err
+
+@router.delete('/unset-algorithm')
+async def unsetAlgorithmEndpoint(params: UnsetAlgorithmRequestBody):
+    print(params.client_id)
+    try:
+        res = unsetAlgorithm(
+            params.client_id
+        )
+        return res
+    except WorkerUtilsException as err:
+        returnContent = {
+            "msg": err.responseMsg
+        }
+        return JSONResponse(
+            status_code=err.responseStatusCode,
+            content=returnContent)
+
+
 # @router.post('/update-instance')
