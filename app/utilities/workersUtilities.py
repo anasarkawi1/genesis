@@ -50,7 +50,7 @@ class MaxProcsException(WorkerUtilsException):
 class ClientNotFoundException(WorkerUtilsException):
     errCode                 = 1002
     responseMsg             = "CLIENT_NOT_FOUND"
-    responseStatusCode      = 400
+    responseStatusCode      = 412
 
 # Algorithm setting failed
 class AlgorithmSetFailedException(WorkerUtilsException):
@@ -253,6 +253,7 @@ class WorkersUtility:
         apiSecret = os.getenv("API_SECRET")
         return [apiKey, apiSecret]
 
+    # TODO: Very eh implementation... If an instance is removed its port will be freed but will not be available to the supervisor. What we need is a pool of available ports.
     def getCurrentPort(self):
         returnPort = self.currentPort
         self.currentPort += 1

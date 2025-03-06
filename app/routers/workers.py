@@ -24,7 +24,7 @@ responses = {
 }
 
 workerUtils = WorkersUtility(
-    maxProcs=1,
+    maxProcs=10,
     defaultWorkerPort=8071,
     supervisorPort=8070,
     logger=logger)
@@ -126,6 +126,10 @@ def createInstanceRoutine(
             userId=userId,
             clientId=clientId,
             workerParams=workerParams)
+        print("----PROCESS CREATED----")
+        print(f"PID: {result['msg']['PID']}")
+        print(f"PORT: {result['msg']['port']}")
+        print("-----------------------")
         return result["msg"]
     except WorkerUtilsException as err:
         raise err
@@ -244,8 +248,9 @@ class SetAlgorithmRequestBody(BaseModel):
     algorithm           : dict
 
 def setAlgorithm(clientId, algorithmId, algorithm):
+    print(algorithm)
     try:
-        result = workerUtils.setClientAlgorithm(clientId, algorithmId, algorithm, algorithm.entryCost)
+        result = workerUtils.setClientAlgorithm(clientId, algorithmId, algorithm, algorithm["entry_cost"])
         # logger.info(result)
         return result
     except WorkerUtilsException as err:

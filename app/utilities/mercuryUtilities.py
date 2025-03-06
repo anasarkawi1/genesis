@@ -188,6 +188,9 @@ class workerClass:
             exchange        = self.exchange,
             credentials     = [apiKey, apiSecret],
             updateCallback  = self.callback)
+        
+        # Temporary fix. Founder mode I guess?
+        self.trader.indicatorFunctionParameters = {}
 
         # Update routines
         # TODO: Implement
@@ -224,10 +227,17 @@ class workerClass:
         
         @self.workerAPI.get('/currentData')
         async def getCurrentData():
-            return {
-                "price": self.lastPrice,
-                "indicators": self.lastIndicator
+            lastPrice                = self.trader.data.iloc[-1].to_dict()
+            lastIndicator            = self.trader.indicatorData.iloc[-1].to_dict()
+            currentDataRecieved = {
+                "price"             : lastPrice,
+                "indicators"        : lastIndicator,
             }
+            
+            return JSONResponse(
+                status_code=200,
+                content=currentDataRecieved
+            )
         
         class SetAlgoReqBody(BaseModel):
             algorithm_id    : str
