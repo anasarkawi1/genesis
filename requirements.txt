@@ -7,9 +7,9 @@ click==8.1.8
 dataclasses==0.6
 fastapi==0.115.7
 h11==0.14.0
-hermesConnector==0.0.7
+hermesConnector==0.0.9
 idna==3.10
-mercuryFramework==0.1.7
+mercuryFramework==0.1.8
 numpy==2.2.2
 pandas==2.2.3
 pycryptodome==3.21.0
