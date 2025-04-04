@@ -1,10 +1,12 @@
 # Import libraries
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 # Import Routers
 # from routers import workers
 # from .routers import workers
 from .routers import workers
+from .utilities.blackboxInternalAPI import BlackBoxInternal
 
 # Configure FastAPI
 app: FastAPI = FastAPI()
@@ -22,9 +24,16 @@ async def RequestLogging(req: Request, call_next):
         response = await call_next(req)
         return response
 
+
+# Initialise BlackBox internal client
+internalClient = BlackBoxInternal()
+
 # Define API
 @app.get('/')
 def root():
-    return {
-        'msg': 'hello world!'
-    }
+    blackboxRes = internalClient.test().json()
+    # print(blackboxRes.text)
+    return JSONResponse(content={
+        'msg': 'hello world!',
+        'response': blackboxRes
+    })

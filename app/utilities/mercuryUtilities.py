@@ -9,6 +9,7 @@ import typing_extensions as typing
 import numpy as np
 import pandas as pd
 import hermesConnector.hermesExceptions as hermesExceptions
+from .blackboxInternalAPI import BlackBoxInternal
 # import logging
 
 
@@ -37,15 +38,43 @@ class workerClass:
         # Here, we need to call the order functions
         try:
             orderOut = trader.costBuy(self.entryCost)
-            # Check if the entire order is executed. If not, continue checking for the rest of the order until it is  completely filled.
-            if (orderOut["origQty"] != orderOut["executedQty"]):
-                pass
-            # print(orderOut)
-            execQty = orderOut['executedQty']
-            self.execQty = execQty
+            orderOrigQty = orderOut["origQty"]
+            orderExecQty = orderOut["executedQty"]
+            self.execQty = orderExecQty
             print(f"Executed Qty: {execQty}")
+
+            # Check if the order was executed in full, if not, set the partial fill flag and record
+            if (orderOrigQty != orderExecQty):
+                # TODO: Make sure to unset this on exit!!
+                self.execQty = True
+                
             self.positionEntered = True
             print("Position entered!")
+
+            # Calculate the average fill price
+            fillPriceSum = 0
+            avgFillPrice = 0
+            for f in orderOut["fills"]:
+                fillPriceSum = fillPriceSum + f['price']
+            avgFillPrice = fillPriceSum / (len(orderOut["fills"]))
+
+            # Send the order to the backend
+            self.blackboxInternal.createOrder(
+                data={
+                    "clientId"                  : self.workerId,
+                    "userId"                    : self.workerUserId,
+                    "external_order_id"         : orderOut["orderId"],
+                    "price"                     : avgFillPrice,
+                    "stop_price"                : 0,
+                    "limit_price"               : 0,
+                    "trail_price"               : 0,
+                    "quantity"                  : orderExecQty,
+                    "time_in_force"             : "",
+                    "order_type"                : "MARKET",
+                    "side"                      : "BUY",
+                    "raw_json"                  : orderOut,
+                    "timestamp_filled"          : f'{orderOut["transactTime"]}'
+                })
         
         # The except cases here will be made for each case it seems like. There gotta be a better way of doing this...
         except hermesExceptions.HermesBaseException as err:
@@ -170,6 +199,7 @@ class workerClass:
         self.positionEntered: bool              = False
         self.entryCost                          = 0
         self.execQty                            = 0
+        self.partialFill                        = False
 
         # Supervisor params
         self.supervisorPort                     = supervisorPort
@@ -191,6 +221,8 @@ class workerClass:
         
         # Temporary fix. Founder mode I guess?
         self.trader.indicatorFunctionParameters = {}
+
+        self.blackboxInternal = BlackBoxInternal()
 
         # Update routines
         # TODO: Implement
@@ -270,6 +302,7 @@ class workerClass:
             self.positionEntered    = False
             self.entryCost          = 0
             self.execQty            = 0
+            self.partialFill        = False
             return JSONResponse(status_code=200, content={})
 
         # Server
