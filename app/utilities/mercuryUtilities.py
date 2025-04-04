@@ -46,7 +46,7 @@ class workerClass:
             # Check if the order was executed in full, if not, set the partial fill flag and record
             if (orderOrigQty != orderExecQty):
                 # TODO: Make sure to unset this on exit!!
-                self.execQty = True
+                self.partialFill = True
                 
             self.positionEntered = True
             print("Position entered!")
@@ -73,7 +73,8 @@ class workerClass:
                     "order_type"                : "MARKET",
                     "side"                      : "BUY",
                     "raw_json"                  : orderOut,
-                    "timestamp_filled"          : f'{orderOut["transactTime"]}'
+                    "timestamp_filled"          : f'{orderOut["transactTime"]}',
+                    "partial_fill"              : self.partialFill
                 })
         
         # The except cases here will be made for each case it seems like. There gotta be a better way of doing this...
@@ -81,12 +82,63 @@ class workerClass:
             raise err
 
     def positionExitHandler(self, trader: Trader):
-        orderOut = trader.sell(self.execQty)
-        execQty = orderOut['executedQty']
-        self.execQty = execQty
-        print(f"Executed Qty: {execQty}")
-        self.positionEntered = False
-        print("Position exited!")
+        # TODO: Problem: Since the entire order may not be filled, does that mean the position should continue? I Support it should...
+        try:
+            orderOut = trader.sell(self.execQty)
+            
+            orderOrigQty = orderOut['origQty']
+            orderExecQty = orderOut['executedQty']
+            orderRemainder = 0
+            partialExit = False
+
+            # Check if the entire position has been executed
+            if (orderOrigQty != orderExecQty):
+                # It's a partial fill...
+                # Figure out how much is remianing
+                orderRemainder = orderOrigQty - orderExecQty
+                self.execQty = orderRemainder
+                partialExit = True
+            
+            if (partialExit == False):
+                self.positionEntered = False
+                self.execQty = 0
+                partialExit = False
+            
+            # Reset parameters
+            self.partialFill = False
+            self.execQty = 0
+
+            print(f"Executed Qty: {orderExecQty}")
+            print("Position exited!")
+
+            # Calculate the average fill price
+            fillPriceSum = 0
+            avgFillPrice = 0
+            for f in orderOut["fills"]:
+                fillPriceSum = fillPriceSum + f['price']
+            avgFillPrice = fillPriceSum / (len(orderOut["fills"]))
+
+            # Send the order to the backend
+            self.blackboxInternal.createOrder(
+                data={
+                    "clientId"                  : self.workerId,
+                    "userId"                    : self.workerUserId,
+                    "external_order_id"         : orderOut["orderId"],
+                    "price"                     : avgFillPrice,
+                    "stop_price"                : 0,
+                    "limit_price"               : 0,
+                    "trail_price"               : 0,
+                    "quantity"                  : orderExecQty,
+                    "time_in_force"             : "",
+                    "order_type"                : "MARKET",
+                    "side"                      : "SELL",
+                    "raw_json"                  : orderOut,
+                    "timestamp_filled"          : f'{orderOut["transactTime"]}',
+                    "partial_fill"              : partialExit
+                })
+
+        except hermesExceptions.HermesBaseException as err:
+            raise err
 
     def paramChecker(
             self,
